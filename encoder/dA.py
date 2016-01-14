@@ -82,14 +82,15 @@ class dA(object):
         numpy_rng,
         theano_rng=None,
         input=None,
-        input_shape=None,
+
 
         n_visible=784,
         n_hidden=500,
         W=None,
         bhid=None,
         bvis=None,
-        mybatch_size=None,
+
+        filter_matrix=None,
 
 
         # filter for sampling, added by feng
@@ -199,7 +200,6 @@ class dA(object):
         self.W_prime = self.W.T
         self.theano_rng = theano_rng
 
-        self.input_shape = input_shape
         # if no input is given, generate a variable representing the input
         if input is None:
             # we use a matrix because we expect a minibatch of several
@@ -208,9 +208,9 @@ class dA(object):
         else:
             self.x = input
 
-        self.filter_matrix = numpy.zeros((mybatch_size, n_visible))
-
-
+        #self.filter_matrix = numpy.random.randint(2, size=(mybatch_size, n_visible))
+        #self.filter_matrix = numpy.zeros(mybatch_size, n_visible)
+        self.myfilter_matrix = filter_matrix
         '''
         initial_filter = numpy.zeros(
                 shape = input_shape,
@@ -246,6 +246,7 @@ class dA(object):
         self.error_type = error_type
 
 
+    '''
     def set_filter(self):
         # create the filter, sample based on the non-zero features and the sample the sample number of non-zero features
         #m = T.sum(a, axis=0)
@@ -262,7 +263,7 @@ class dA(object):
         numpy.random.seed(5)
 
 
-        print self.input_shape.eval()
+        #print self.input_shape.eval()
 
         all_row_num = self.input_shape[0].eval()
         all_col_num = self.input_shape[1].eval()
@@ -270,7 +271,7 @@ class dA(object):
 
         x_instance = self.x.eval()
 
-        print type(all_col_num), all_col_num
+        #print type(all_col_num), all_col_num
         i = 0
         #for i in range(all_row_num):
         #while T.lt(i, all_row_num.eval()):
@@ -318,6 +319,7 @@ class dA(object):
             self.filter_matrix = tmp_filter_matrix
         print 'sampling filter created'
 
+    '''
     def get_corrupted_input(self, input, corruption_level):
         """This function keeps ``1-corruption_level`` entries of the inputs the
         same and zero-out randomly selected subset of size ``coruption_level``
@@ -367,7 +369,7 @@ class dA(object):
 
 
         #sampled_data = csr_matrix.multiply(self.filter_matrix, a)
-        sampled_data = self.filter_matrix * a
+        sampled_data = self.myfilter_matrix * a
         return sampled_data
         
 
@@ -481,11 +483,14 @@ def test_dA(my_s_type, my_error_type, dim_in, dim_out, learning_rate=0.1, traini
     # shared version and numpy version
     [train_set_x, test_set_x,train_set, test_set] = datasets
 
-
+    index_k = T.lscalar()
 
 
     # jump out the epochs
     threshold = 5
+
+    # get the filter matrix for each batch, put in one list
+    all_filters = create_all_filter(train_set)
 
     # compute number of minibatches for training, validation and testing
     n_train_batches = train_set_x.get_value(borrow=True).shape[0] / batch_size
@@ -493,8 +498,10 @@ def test_dA(my_s_type, my_error_type, dim_in, dim_out, learning_rate=0.1, traini
     # start-snippet-2
     # allocate symbolic variables for the data
     #index = T.lscalar()    # index to a [mini]batch
-    #x = T.matrix('x')  # the data is presented as rasterized images
+    x = T.matrix('x')  # the data is presented as rasterized images
     #x = theano.shared((numpy.zeros(batch_size, train_set_x.get_value(borrow=True).shape[0]), dtype=theano.config.floatX), borrow=True)
+
+    '''
     x = theano.shared(
                 value=numpy.zeros(
                     (batch_size, dim_in),
@@ -504,7 +511,7 @@ def test_dA(my_s_type, my_error_type, dim_in, dim_out, learning_rate=0.1, traini
                 borrow=True
             )
 
-
+    '''
     #shape_info = T.vector('shape_info')
     shape_info = theano.shared(numpy.array([3,100]))
     # end-snippet-2
@@ -517,11 +524,13 @@ def test_dA(my_s_type, my_error_type, dim_in, dim_out, learning_rate=0.1, traini
     rng = numpy.random.RandomState(123)
     theano_rng = RandomStreams(rng.randint(2 ** 30))
 
+    #
+    my_filter_matrix = T.matrix('my_filter_matrix')
+
     da = dA(
         numpy_rng=rng,
         theano_rng=theano_rng,
         input=x,
-        input_shape=shape_info,
 
         #n_visible=28 * 28,
         #n_hidden=500
@@ -532,7 +541,8 @@ def test_dA(my_s_type, my_error_type, dim_in, dim_out, learning_rate=0.1, traini
         s_type = my_s_type,
         error_type = my_error_type,
 
-        mybatch_size=batch_size
+
+        filter_matrix=my_filter_matrix
     )
 
     # param added by Feng
@@ -542,18 +552,15 @@ def test_dA(my_s_type, my_error_type, dim_in, dim_out, learning_rate=0.1, traini
     )
 
     train_da = theano.function(
-        [],
+        [index_k],
         # return params also, Added by Feng
         # cost,
         cost,
-        updates=updates
-
-        #givens={
-        #    shape_info:[5, 100],
-            #x: train_set_x[index * batch_size: (index + 1) * batch_size]
-            #shape_info:(train_set_x[index * batch_size: (index + 1) * batch_size]).shape
-        #}
-
+        updates=updates,
+        givens={
+            x: train_set_x[index_k * batch_size: (index_k + 1) * batch_size],
+            my_filter_matrix: all_filters[index_k * batch_size: (index_k + 1) * batch_size]
+        }
     )
 
 
@@ -585,16 +592,14 @@ def test_dA(my_s_type, my_error_type, dim_in, dim_out, learning_rate=0.1, traini
         count = 0
         for batch_index in xrange(n_train_batches):
             print 'batch No.', str(batch_index), 'started'
-            this_batch = train_set[batch_index * batch_size: (batch_index + 1) * batch_size]
-            x.set_value(this_batch)
+
 
             # set the filter for this batch
             # testshape_info.set_value([5,100])
 
-            shape_info.set_value(this_batch.shape)
-            da.set_filter()
 
-            c.append(train_da())
+
+            c.append(train_da(batch_index))
             count += 1
 
 
@@ -667,6 +672,83 @@ def load_data(dataset):
     shared_test = theano.shared(numpy.asarray(test_set, dtype=theano.config.floatX), borrow=True)
 
     return (shared_train, shared_test, train_set, test_set)
+
+
+# create the filter matrix for every batch, placed in one list
+def create_all_filter(train_set, ):
+    # create the filter, sample based on the non-zero features and the sample the sample number of non-zero features
+        #m = T.sum(a, axis=0)
+
+        all_nz = []
+        all_zero = []
+        all_filter = []
+
+        row = []
+        col = []
+        data = []
+
+        # fix the random seed
+        numpy.random.seed(5)
+
+
+        #print self.input_shape.eval()
+
+        all_row_num = train_set.shape[0]
+        all_col_num = train_set.shape[1]
+
+
+
+
+        i = 0
+
+        while all_row_num > i:
+            nz_this_row = []
+            zeros_this_row = []
+            j = 0
+            #for j in range(all_col_num):
+            while all_col_num > j:
+            #while T.lt(j, all_col_num.eval()):
+                elem = train_set[i, j]
+                if elem == 0:  # errors here elem is always nonzero
+                    zeros_this_row.append(j)
+                else:
+                    nz_this_row.append(j)
+                #print 'inside ', str(j), 'iteration in', str(all_col_num)
+
+                j += 1
+
+            len_sampled = len(nz_this_row)
+            sampled_zeros_this_row = numpy.random.choice(zeros_this_row, size = len_sampled, replace=False)
+            filtered_result_this_row = nz_this_row + sampled_zeros_this_row.tolist()
+
+
+            # prepare to construct the sparse matrix
+            for m in range(len(filtered_result_this_row)):
+                row.append(i)
+                col.append(filtered_result_this_row[m])
+                data.append(float(1))
+
+
+            # actually csr format
+            all_zero.append(zeros_this_row) # all of the zero index in each row
+            all_nz.append(nz_this_row) # all of the nz index in each row
+            all_filter.append(nz_this_row + sampled_zeros_this_row)
+
+            #print 'the ', str(i), 'iteration finished'
+            i += 1
+
+        tmp_filter_matrix = csr_matrix((data, (row, col))).toarray()
+        extra_col = train_set.shape[0] - tmp_filter_matrix.shape[1]
+
+        #all_in_one_filters = numpy.zeros(train_set.shape)
+        if extra_col > 0:
+            all_in_one_filtes = numpy.hstack((tmp_filter_matrix, numpy.zeros((tmp_filter_matrix.shape[0], extra_col), dtype=tmp_filter_matrix.dtype)))
+        else:
+            all_in_one_filters = tmp_filter_matrix
+
+        print 'sampling filter created'
+
+        return theano.shared(all_in_one_filters, borrow=True)
 
 
 

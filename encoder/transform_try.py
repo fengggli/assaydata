@@ -156,7 +156,7 @@ def do_transform(train_path, test_path, new_train_path, new_test_path, pickle_pa
     dim_out = int(dim_in*pecent_encode)
     print 'before sampling', matrix_train.shape, matrix_test.shape, 'mapped to dim_out = ', dim_out
 
-    matrix_train_new, matrix_test_new = dA.test_dA(1, 0, dim_in, dim_out, learning_rate=0.1, training_epochs=my_training_epochs,dataset=pickle_path, batch_size=10, output_path=model_path)
+    matrix_train_new, matrix_test_new = dA.test_dA(1, 0, dim_in, dim_out, learning_rate=0.1, training_epochs=my_training_epochs,dataset=pickle_path, batch_size=4, output_path=model_path)
 
     matrix2file(matrix_train_new, train_left, train_right, new_train_path)
     matrix2file(matrix_test_new, test_left, test_right, new_test_path)
