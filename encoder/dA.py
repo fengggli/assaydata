@@ -591,7 +591,7 @@ def test_dA(my_s_type, my_error_type, dim_in, dim_out, learning_rate=0.1, traini
 
         count = 0
         for batch_index in xrange(n_train_batches):
-            print 'batch No.', str(batch_index), 'started'
+            #print 'batch No.', str(batch_index), 'started'
 
 
             # set the filter for this batch
@@ -659,7 +659,7 @@ def load_data(dataset):
 
     numpy.savetxt('tmpfile', train_set[0:10])
 
-    print 'aready written'
+    #print 'aready written'
 
 
     '''
