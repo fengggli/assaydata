@@ -8,6 +8,7 @@ import sys
 
 from scipy.sparse import csr_matrix
 
+'''
 def get_sampled(a, b, sample_rate = 0.01):
 
     # random seed
@@ -34,6 +35,8 @@ def get_sampled(a, b, sample_rate = 0.01):
     a_sampled = a[:,sampled_index]
     b_sampled = b[:,sampled_index]
     return [a_sampled, b_sampled]
+
+'''
 
 
 # from the svm_rank input file get the feature matrix
@@ -195,17 +198,23 @@ if __name__ == '__main__':
     #assay_directory = '../alldata'
     percent_encode = 0.01
     training_epochs = 100
+
     if len(sys.argv) < 5:
         print "./python this.py assay_name fold_id percent epochs"
-        exit()
+        print 'use default settings'
+        file_name = '625269.csv.out.2'
+        current_fold = '0'
+        percent_encode = 0.01
+        training_epochs = 100
 
 
     # try one instance
-    file_name = sys.argv[1]
-    current_fold = sys.argv[2]
+    else:
+        file_name = sys.argv[1]
+        current_fold = sys.argv[2]
 
-    percent_encode = float(sys.argv[3])
-    training_epochs = int(sys.argv[4])
+        percent_encode = float(sys.argv[3])
+        training_epochs = int(sys.argv[4])
 
     mycase = file_name +'_' + str(current_fold)
     train_path = '../traindata/' + mycase +'.train'
