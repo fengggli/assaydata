@@ -202,7 +202,7 @@ if __name__ == '__main__':
     if len(sys.argv) < 5:
         print "./python this.py assay_name fold_id percent epochs"
         print 'use default settings'
-        file_name = '625269.csv.out.2'
+        file_name = '733.csv.out.2'
         current_fold = '0'
         percent_encode = 0.01
         training_epochs = 100
