@@ -605,6 +605,9 @@ def test_dA(my_s_type, my_error_type, dim_in, dim_out, learning_rate=0.1, traini
 
         print 'Training epoch %d, cost ' % epoch, numpy.mean(c)
 
+        # immediately flush
+        sys.stdout.flush()
+
         if numpy.mean(c) < threshold:
             break
 
@@ -627,6 +630,25 @@ def test_dA(my_s_type, my_error_type, dim_in, dim_out, learning_rate=0.1, traini
 
     mapped_test = get_mapped(test_set_x.get_value(borrow = True))
     print 'get the mapped test data'
+    '''
+
+    f = gzip.open(output_path, 'w')
+
+    cPickle.dump([da.W.eval(), da.b.eval(), da.W_prime.eval(), da.b_prime.eval()], f)
+    f.close()
+    '''
+
+    w_path = output_path + '_W'
+    b_path = output_path + 'b'
+    w_prime_path = output_path + 'W_prime'
+    b_prime_path = output_path + 'b_prime'
+
+    write_csr(da.W.eval(), w_path)
+    write_csr(da.b.eval(), b_path)
+    write_csr(da.W_prime.eval(), w_prime_path)
+    write_csr(da.b_prime(), b_prime_path)
+
+    print '\nW and b W_prime, b_primeare saved in***' + output_path
 
     #print '\n***yyy'
     #print mapped_train
@@ -750,7 +772,23 @@ def create_all_filter(train_set, ):
 
         return theano.shared(all_in_one_filters, borrow=True)
 
+# write the matrix as the csr form
+def write_csr(matrix_x, path):
+    buffer = ''
+    f = open(path, 'w')
+    num_rows = matrix_x.shape[0]
+    num_cols = matrix_x.shape[1]
 
+    buffer += str(num_rows) + ' ' +str(num_cols) + '\n'
+    for i in range(num_rows):
+
+        for j in range(num_cols):
+            if matrix_x[i, j] != 0:
+                buffer += '(' + str(i) + ' ' + str(j) + ')' + ' ' +str(matrix_x[i,j]) + '\n'
+
+
+    print >>f, buffer
+    f.close()
 
 
 if __name__ == '__main__':

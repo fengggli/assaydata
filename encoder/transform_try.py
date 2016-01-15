@@ -203,9 +203,10 @@ if __name__ == '__main__':
         print "./python this.py assay_name fold_id percent epochs"
         print 'use default settings'
         file_name = '625269.csv.out.2'
+        #file_name = '733.csv.out.2'
         current_fold = '0'
         percent_encode = 0.01
-        training_epochs = 100
+        training_epochs = 2
 
 
     # try one instance
@@ -225,9 +226,12 @@ if __name__ == '__main__':
     new_train_path = 'traindata_sampled_encoded_new/' + mycase_more +'.train'
     new_test_path = 'testdata_sampled_encoded_new/' + mycase_more + '.test'
 
+
+
+
     pickle_path = 'tmp/' + mycase_more +'_sampled_new.pkl.gz'  # this is for dA module
 
-    model_path = 'model/' +mycase_more +'_model_sampled_new.pkl.gz' # this is the encode 's W and b
+    model_path = 'model/' +mycase_more # this is the encode 's W and b
     print train_path, test_path, new_train_path, new_test_path
 
     do_transform(train_path, test_path, new_train_path, new_test_path, pickle_path, model_path, percent_encode, training_epochs)
