@@ -462,7 +462,7 @@ class dA(object):
 
 def test_dA(my_s_type, my_error_type, dim_in, dim_out, learning_rate=0.1, training_epochs=15,
             dataset='mnist.pkl.gz',
-            batch_size=10, output_path='dA_plots'):
+            batch_size=10, output_path='dA_plots', sample_method=0):
 
     """
     This demo is tested on MNIST
@@ -480,6 +480,11 @@ def test_dA(my_s_type, my_error_type, dim_in, dim_out, learning_rate=0.1, traini
     """
     datasets = load_data(dataset)
 
+
+    # fix the random see
+    numpy.random.seed(5)
+
+
     # shared version and numpy version
     [train_set_x, test_set_x,train_set, test_set] = datasets
 
@@ -490,7 +495,9 @@ def test_dA(my_s_type, my_error_type, dim_in, dim_out, learning_rate=0.1, traini
     threshold = 5
 
     # get the filter matrix for each batch, put in one list
-    all_filters = create_all_filter(train_set)
+
+    np_filter_matrix = create_all_filter(train_set, sample_method)
+    all_filters = theano.shared(np_filter_matrix, borrow=True)
 
     # compute number of minibatches for training, validation and testing
     n_train_batches = train_set_x.get_value(borrow=True).shape[0] / batch_size
@@ -513,7 +520,7 @@ def test_dA(my_s_type, my_error_type, dim_in, dim_out, learning_rate=0.1, traini
 
     '''
     #shape_info = T.vector('shape_info')
-    shape_info = theano.shared(numpy.array([3,100]))
+    #shape_info = theano.shared(numpy.array([3,100]))
     # end-snippet-2
 
 
@@ -611,6 +618,11 @@ def test_dA(my_s_type, my_error_type, dim_in, dim_out, learning_rate=0.1, traini
         if numpy.mean(c) < threshold:
             break
 
+        # update the filter each time
+        if sample_method == 0:
+            np_filter_matrix = create_all_filter(train_set)
+            all_filters.set_value(np_filter_matrix)
+
 
 
     end_time = timeit.default_timer()
@@ -638,6 +650,7 @@ def test_dA(my_s_type, my_error_type, dim_in, dim_out, learning_rate=0.1, traini
     f.close()
     '''
 
+    '''
     w_path = output_path + '_W'
     b_path = output_path + 'b'
     w_prime_path = output_path + 'W_prime'
@@ -649,7 +662,7 @@ def test_dA(my_s_type, my_error_type, dim_in, dim_out, learning_rate=0.1, traini
     write_csr(da.b_prime(), b_prime_path)
 
     print '\nW and b W_prime, b_primeare saved in***' + output_path
-
+    '''
     #print '\n***yyy'
     #print mapped_train
     #print mapped_test
@@ -697,7 +710,9 @@ def load_data(dataset):
 
 
 # create the filter matrix for every batch, placed in one list
-def create_all_filter(train_set, ):
+# sample method 0: sample nz and same number of zeros
+# sample method 1: sample only nz
+def create_all_filter(train_set, sample_method):
     # create the filter, sample based on the non-zero features and the sample the sample number of non-zero features
         #m = T.sum(a, axis=0)
 
@@ -710,7 +725,6 @@ def create_all_filter(train_set, ):
         data = []
 
         # fix the random seed
-        numpy.random.seed(5)
 
 
         #print self.input_shape.eval()
@@ -739,9 +753,14 @@ def create_all_filter(train_set, ):
 
                 j += 1
 
-            len_sampled = len(nz_this_row)
-            sampled_zeros_this_row = numpy.random.choice(zeros_this_row, size = len_sampled, replace=False)
-            filtered_result_this_row = nz_this_row + sampled_zeros_this_row.tolist()
+            if sample_method == 0:
+                len_sampled = len(nz_this_row)
+                sampled_zeros_this_row = numpy.random.choice(zeros_this_row, size = len_sampled, replace=False)
+                filtered_result_this_row = nz_this_row + sampled_zeros_this_row.tolist()
+            elif sample_method == 1:
+                # only use the nz filter
+                filtered_result_this_row = nz_this_row
+
 
 
             # prepare to construct the sparse matrix
@@ -752,9 +771,9 @@ def create_all_filter(train_set, ):
 
 
             # actually csr format
-            all_zero.append(zeros_this_row) # all of the zero index in each row
-            all_nz.append(nz_this_row) # all of the nz index in each row
-            all_filter.append(nz_this_row + sampled_zeros_this_row)
+            #all_zero.append(zeros_this_row) # all of the zero index in each row
+            #all_nz.append(nz_this_row) # all of the nz index in each row
+            #all_filter.append(nz_this_row + sampled_zeros_this_row)
 
             #print 'the ', str(i), 'iteration finished'
             i += 1
@@ -770,7 +789,8 @@ def create_all_filter(train_set, ):
 
         print 'sampling filter created'
 
-        return theano.shared(all_in_one_filters, borrow=True)
+        return all_in_one_filters
+        #return theano.shared(all_in_one_filters, borrow=True)
 
 # write the matrix as the csr form
 def write_csr(matrix_x, path):
