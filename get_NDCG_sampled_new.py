@@ -112,11 +112,11 @@ if __name__ == "__main__":
 
         if rank_function == 0:
             print 'for svm ranking \n'
-            output_path = 'NDCG_result/svm_rank_sampled_new_0.01_0.05.result'
+            output_path = 'NDCG_result/svm_rank_sampled_new2.result'
 
         else:
             print 'for svm light \n'
-            output_path = 'NDCG_result/svm_light_sampled_new_0.01_0.05.result'
+            output_path = 'NDCG_result/svm_light_sampled_new2.result'
 
 
         ndcg_result = open(output_path, 'w')
@@ -140,7 +140,7 @@ if __name__ == "__main__":
         #for fold_id in range(5):
 
         fold_id = 0
-        for sampling_rate in [0.01, 0.05]: 
+        for sampling_rate in [0.01]: 
             ndcg10_this_assay = []
             ndcg5_this_assay = []
             ndcgall_this_assay = []

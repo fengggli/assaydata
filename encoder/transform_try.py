@@ -123,7 +123,7 @@ def matrix2file(matrix_x, matrix_left, matrix_right ,file_path):
 
 
 # use the degnosing autocoder to transform the train and test data
-def do_transform(train_path, test_path, new_train_path, new_test_path, pickle_path, model_path, pecent_encode,my_training_epochs):
+def do_transform(train_path, test_path, new_train_path, new_test_path, pickle_path, model_path, pecent_encode,my_training_epochs, mysample_mathod):
     # left is the left part besides the feature matrix
     matrix_train, train_left, train_right= file2matrix(train_path)
     matrix_test, test_left, test_right = file2matrix(test_path)
@@ -156,7 +156,7 @@ def do_transform(train_path, test_path, new_train_path, new_test_path, pickle_pa
     dim_out = int(dim_in*pecent_encode)
     print 'before sampling', matrix_train.shape, matrix_test.shape, 'mapped to dim_out = ', dim_out
 
-    matrix_train_new, matrix_test_new = dA.test_dA(1, 0, dim_in, dim_out, learning_rate=0.1, training_epochs=my_training_epochs,dataset=pickle_path, batch_size=4, output_path=model_path)
+    matrix_train_new, matrix_test_new = dA.test_dA(1, 0, dim_in, dim_out, learning_rate=0.1, training_epochs=my_training_epochs,dataset=pickle_path, batch_size=10, output_path=model_path,sample_method=mysample_mathod)
 
     matrix2file(matrix_train_new, train_left, train_right, new_train_path)
     matrix2file(matrix_test_new, test_left, test_right, new_test_path)
@@ -196,16 +196,21 @@ def test_sample:
 
 if __name__ == '__main__':
     #assay_directory = '../alldata'
-    percent_encode = 0.01
-    training_epochs = 100
+
 
     if len(sys.argv) < 5:
         print "./python this.py assay_name fold_id percent epochs"
         print 'use default settings'
+        #file_name = '625269.csv.out.2'
         file_name = '733.csv.out.2'
         current_fold = '0'
+        #percent_encode = 0.01
         percent_encode = 0.01
         training_epochs = 100
+
+        # 0 sample nz and same number of zero
+        # 1 only sample zeros
+        sample_method = 1
 
 
     # try one instance
@@ -220,17 +225,23 @@ if __name__ == '__main__':
     train_path = '../traindata/' + mycase +'.train'
     test_path = '../testdata/' + mycase +'.test'
 
-    mycase_more = mycase + '_pct_' + str(percent_encode) + '_epochs_' + str(training_epochs)
+    if sample_method == 0:
+        mycase_more = mycase + '_pct_' + str(percent_encode) + '_epochs_' + str(training_epochs)
+    elif sample_method == 1:
+        mycase_more = mycase + '_pct_' + str(percent_encode) + '_epochs_' + str(training_epochs) + '_only_nz'
 
     new_train_path = 'traindata_sampled_encoded_new/' + mycase_more +'.train'
     new_test_path = 'testdata_sampled_encoded_new/' + mycase_more + '.test'
 
+
+
+
     pickle_path = 'tmp/' + mycase_more +'_sampled_new.pkl.gz'  # this is for dA module
 
-    model_path = 'model/' +mycase_more +'_model_sampled_new.pkl.gz' # this is the encode 's W and b
+    model_path = 'model/' +mycase_more # this is the encode 's W and b
     print train_path, test_path, new_train_path, new_test_path
 
-    do_transform(train_path, test_path, new_train_path, new_test_path, pickle_path, model_path, percent_encode, training_epochs)
+    do_transform(train_path, test_path, new_train_path, new_test_path, pickle_path, model_path, percent_encode, training_epochs, sample_method)
 
 
 '''
