@@ -14,7 +14,7 @@ do
 
 		mycase=${assayname}_${i}
 
-        for sample_rate in 0.01
+        for sample_rate in 0.01 0.1
         do
             mycasemore=${mycase}_pct_${sample_rate}_epochs_100
 
