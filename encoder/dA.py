@@ -620,8 +620,10 @@ def test_dA(my_s_type, my_error_type, dim_in, dim_out, learning_rate=0.1, traini
 
         # update the filter each time
         if sample_method == 0:
-            np_filter_matrix = create_all_filter(train_set)
+            np_filter_matrix = create_all_filter(train_set, 0)
             all_filters.set_value(np_filter_matrix)
+
+        print train_set[0, 1:10]
 
 
 
