@@ -3,8 +3,25 @@ import numpy
 from os  import path
 
 
+def get_active_dic(assay_name):
+    dic_active = {}
+    assay_path = 'alldata/'+ assay_name
+    with open(assay_path) as fp:
+        count = 0
+        for line in fp:
+            # don't want the first line
+            if count == 0:
+                count += 1
+                continue
+            splits = line[:-1].split(' ')
+            if splits[1] == 'Active':
+                dic_active[splits[0]] = 1
+    return dic_active
 
-def get_ndcg(test_path, pred_path):
+
+
+
+def get_ndcg(test_path, pred_path, only_active=0):
     test_rank = []
     pred_rank = []
 
@@ -13,10 +30,15 @@ def get_ndcg(test_path, pred_path):
     ndcg5 = 0
     ndcgall = 0
 
+
+    if only_active == 1:
+        dic_active = get_active_dic('733.csv.out.2')
+
     if path.isfile(pred_path) == False:
         return [0, 0, 0, 0]
 
 
+    '''
     with open(test_path) as fp:
         for line in fp:
 
@@ -25,6 +47,29 @@ def get_ndcg(test_path, pred_path):
     with open(pred_path) as fp:
         for line in fp:
             pred_rank.append(float(line))
+
+    '''
+    myiter = 0
+    fp_test = open(test_path, 'r')
+    fp_pred = open(pred_path, 'r')
+    line_count = 0
+
+    all_lines_test = []
+    all_lines_pred = []
+    for line in fp_test:
+        line_count += 1
+        all_lines_test.append(line)
+
+    for line in fp_pred:
+        all_lines_pred.append(line[:-1])
+
+    for myiter in range(line_count):
+        splits = all_lines_test[myiter][:-1].split(' ')  # for ndcg_origin, -1 should replaced with -2, pay attention to the format of testfile
+        label_with_sharp = splits[-1]
+        mylabel = label_with_sharp[1:]
+        if mylabel in dic_active:
+            test_rank.append(float(splits[0]))
+            pred_rank.append(float(all_lines_pred[myiter]))
 
     #print("test rank:", test_rank)
     #print("prediction rank:", pred_rank)
@@ -87,6 +132,8 @@ def get_ndcg(test_path, pred_path):
 
         ndcg = DCG/best_DCG
 
+        print 'iteration', str(iter),'gain/bestgain = ', str(score), str(best_score) ,'cg = ', str(CG),', best cg = ', str(best_CG), ', dcg = ', str(DCG), ', best_dcg = ', str(best_DCG), ', ndcg = ', str(ndcg)
+
         if iter == 9:
             ndcg10 = ndcg
 
@@ -101,78 +148,5 @@ def get_ndcg(test_path, pred_path):
 
 
     return [ndcg10, ndcg5, ndcgall, len(index_pred)]
-
-if __name__ == "__main__":
-
-
-    for rank_function in range(2):  # svm_rank:0 or svm_light:1
-
-        if rank_function == 0:
-            print 'for svm ranking \n'
-            output_path = 'NDCG_result/svm_rank.result'
-
-        else:
-            print 'for svm light \n'
-            output_path = 'NDCG_result/svm_light.result'
-
-
-        ndcg_result = open(output_path, 'w')
-
-        print 'test'
-        print >> ndcg_result,'assayname NDCG_k avg variance length'
-        print >> ndcg_result, '{0:16}{1:>15}{2:>8}{3:>10}{4:>10}'.format('assayname', 'test_length','NDCG_k', 'avg', 'var')
-
-        f = open('assaylist', 'r')
-        for line in f:
-
-        # for each assay in the assay list
-            assayname = line[:-1]
-
-            ndcg10_this_assay = []
-            ndcg5_this_assay = []
-            ndcgall_this_assay = []
-
-            for fold_id in range(5):
-                mycase = assayname + '_' +str(fold_id)
-
-
-                test_path = 'testdata/' + mycase + '.test'
-
-                if rank_function == 0:
-                    pred_path = 'svm_rank_pred/' + mycase + '.pred'
-
-                else:
-                    pred_path = 'svm_light_pred/' + mycase + '.pred'
-
-
-                [ndcg10,ndcg5,ndcgall, rank_length] = get_ndcg(test_path, pred_path)
-
-                if ndcg10 != 0:
-                    ndcg10_this_assay.append(ndcg10)
-                if ndcg5 != 0:
-                    ndcg5_this_assay.append(ndcg5)
-                if ndcgall != 0:
-                    ndcgall_this_assay.append(ndcgall)
-
-            # average of the ndcg
-            avg_ndcg10 = numpy.average(ndcg10_this_assay)
-            avg_ndcg5 = numpy.average(ndcg5_this_assay)
-            avg_ndcgall= numpy.average(ndcgall_this_assay)
-
-            #variance of the ndcg
-            var_ndcg10 = numpy.var(ndcg10_this_assay)
-            var_ndcg5 = numpy.var(ndcg5_this_assay)
-            var_ndcgall = numpy.var(ndcgall_this_assay)
-
-            '''
-            print >> ndcg_result, assayname + ' ' + str(rank_length)+ ' 5 ' + str(avg_ndcg5) + ' ' + str(var_ndcg5)
-            print >> ndcg_result, assayname + ' ' + str(rank_length)+ ' 10 ' + str(avg_ndcg10) + ' ' + str(var_ndcg10)
-            print >> ndcg_result, assayname + ' ' + str(rank_length)+ ' all ' + str(avg_ndcgall) + ' ' + str(var_ndcgall)
-            '''
-            print >> ndcg_result, '{0:16}{1:>15}{2:>8s}{3:>10.5f}{4:>10.4f}'.format(assayname, rank_length,'5', avg_ndcg5, var_ndcg5)
-            print >> ndcg_result, '{0:16}{1:>15}{2:>8s}{3:>10.5f}{4:>10.4f}'.format(assayname, rank_length,'10', avg_ndcg10, var_ndcg10)
-            print >> ndcg_result, '{0:16}{1:>15}{2:>8s}{3:>10.5f}{4:>10.4f}'.format(assayname, rank_length,'all', avg_ndcgall, var_ndcgall)
-        ndcg_result.close()
-
 
 
