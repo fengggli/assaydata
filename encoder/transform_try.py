@@ -1,6 +1,5 @@
 import os
 import numpy as np
-import scipy
 import dA
 import cPickle
 import gzip
@@ -160,6 +159,7 @@ def do_transform(train_path, test_path, new_train_path, new_test_path, pickle_pa
 
     matrix2file(matrix_train_new, train_left, train_right, new_train_path)
     matrix2file(matrix_test_new, test_left, test_right, new_test_path)
+    print 'encoded file written'
 
 
 
@@ -201,8 +201,8 @@ if __name__ == '__main__':
     if len(sys.argv) < 5:
         print "./python this.py assay_name fold_id percent epochs"
         print 'use default settings'
-        file_name = '625269.csv.out.2'
-        #file_name = '733.csv.out.2'
+        #file_name = '625269.csv.out.2'
+        file_name = '733.csv.out.2'
         current_fold = '0'
         #percent_encode = 0.01
         percent_encode = 0.01
@@ -210,7 +210,6 @@ if __name__ == '__main__':
 
         # 0 sample nz and same number of zero
         # 1 only sample zeros
-        sample_method = 0
 
 
     # try one instance
@@ -220,6 +219,9 @@ if __name__ == '__main__':
 
         percent_encode = float(sys.argv[3])
         training_epochs = int(sys.argv[4])
+
+    sample_method = 0
+
 
     mycase = file_name +'_' + str(current_fold)
     train_path = '../traindata/' + mycase +'.train'
@@ -238,7 +240,7 @@ if __name__ == '__main__':
 
     pickle_path = 'tmp/' + mycase_more +'_sampled_new.pkl.gz'  # this is for dA module
 
-    model_path = 'model/' +mycase_more # this is the encode 's W and b
+    model_path = '/scratch/lifen/dA_model/' +mycase_more # this is the encode 's W and b
     print train_path, test_path, new_train_path, new_test_path
 
     do_transform(train_path, test_path, new_train_path, new_test_path, pickle_path, model_path, percent_encode, training_epochs, sample_method)

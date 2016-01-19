@@ -67,9 +67,13 @@ def get_ndcg(test_path, pred_path, only_active=0):
         splits = all_lines_test[myiter][:-1].split(' ')  # for ndcg_origin, -1 should replaced with -2, pay attention to the format of testfile
         label_with_sharp = splits[-1]
         mylabel = label_with_sharp[1:]
-        if mylabel in dic_active:
+        if only_active == 0:
             test_rank.append(float(splits[0]))
             pred_rank.append(float(all_lines_pred[myiter]))
+        else:
+            if mylabel in dic_active:
+                test_rank.append(float(splits[0]))
+                pred_rank.append(float(all_lines_pred[myiter]))
 
     #print("test rank:", test_rank)
     #print("prediction rank:", pred_rank)
@@ -132,7 +136,7 @@ def get_ndcg(test_path, pred_path, only_active=0):
 
         ndcg = DCG/best_DCG
 
-        print 'iteration', str(iter),'gain/bestgain = ', str(score), str(best_score) ,'cg = ', str(CG),', best cg = ', str(best_CG), ', dcg = ', str(DCG), ', best_dcg = ', str(best_DCG), ', ndcg = ', str(ndcg)
+        #print 'index', str(iter),'gain/bestgain = ', str(score), str(best_score) ,'cg = ', str(CG),', best cg = ', str(best_CG), ', dcg = ', str(DCG), ', best_dcg = ', str(best_DCG), ', ndcg = ', str(ndcg)
 
         if iter == 9:
             ndcg10 = ndcg

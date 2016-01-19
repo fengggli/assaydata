@@ -38,11 +38,14 @@ import numpy
 import gzip
 
 import cPickle
+import scipy
 
 import theano
 import theano.tensor as T
 from theano.tensor.shared_randomstreams import RandomStreams
 from scipy.sparse import csr_matrix
+
+from scipy import io
 
 #from logistic_sgd import load_data
 from utils import tile_raster_images
@@ -51,6 +54,20 @@ try:
     import PIL.Image as Image
 except ImportError:
     import Image
+
+def save_sparse(A, path, myaxis=2):
+    fp = open(path, 'w')
+    print 'write the matrix to ', path
+    if myaxis == 1:
+
+        for elem in A:
+            print >>fp, elem
+    else:
+        # two dimensional matrix save as sparse
+        #io.mmwrite(fp, A)
+        numpy.savetxt(fp, A, fmt='%-5.3f')
+
+    fp.close()
 
 
 class dA(object):
@@ -623,7 +640,7 @@ def test_dA(my_s_type, my_error_type, dim_in, dim_out, learning_rate=0.1, traini
             np_filter_matrix = create_all_filter(train_set, 0)
             all_filters.set_value(np_filter_matrix)
 
-        print train_set[0, 1:10]
+        #print train_set[0, 1:10]
 
 
 
@@ -644,27 +661,25 @@ def test_dA(my_s_type, my_error_type, dim_in, dim_out, learning_rate=0.1, traini
 
     mapped_test = get_mapped(test_set_x.get_value(borrow = True))
     print 'get the mapped test data'
-    '''
 
-    f = gzip.open(output_path, 'w')
 
-    cPickle.dump([da.W.eval(), da.b.eval(), da.W_prime.eval(), da.b_prime.eval()], f)
-    f.close()
-    '''
 
-    '''
     w_path = output_path + '_W'
-    b_path = output_path + 'b'
-    w_prime_path = output_path + 'W_prime'
-    b_prime_path = output_path + 'b_prime'
+    b_path = output_path + '_b'
+    w_prime_path = output_path + '_W_prime'
+    b_prime_path = output_path + '_b_prime'
 
-    write_csr(da.W.eval(), w_path)
-    write_csr(da.b.eval(), b_path)
-    write_csr(da.W_prime.eval(), w_prime_path)
-    write_csr(da.b_prime(), b_prime_path)
+    mapped_train_path = output_path + '_encoded_train'
+    mapped_test_path = output_path +'_encoded_test'
+
+    save_sparse(da.W.eval(), w_path)
+    save_sparse(da.b.eval(), b_path, 1)
+    save_sparse(da.W_prime.eval(), w_prime_path)
+    save_sparse(da.b_prime.eval(), b_prime_path, 1)
+
 
     print '\nW and b W_prime, b_primeare saved in***' + output_path
-    '''
+
     #print '\n***yyy'
     #print mapped_train
     #print mapped_test
@@ -781,36 +796,20 @@ def create_all_filter(train_set, sample_method):
             i += 1
 
         tmp_filter_matrix = csr_matrix((data, (row, col))).toarray()
-        extra_col = train_set.shape[0] - tmp_filter_matrix.shape[1]
+        extra_col = train_set.shape[1] - tmp_filter_matrix.shape[1]
 
         #all_in_one_filters = numpy.zeros(train_set.shape)
         if extra_col > 0:
-            all_in_one_filtes = numpy.hstack((tmp_filter_matrix, numpy.zeros((tmp_filter_matrix.shape[0], extra_col), dtype=tmp_filter_matrix.dtype)))
+            all_in_one_filters = numpy.hstack((tmp_filter_matrix, numpy.zeros((tmp_filter_matrix.shape[0], extra_col), dtype=tmp_filter_matrix.dtype)))
         else:
             all_in_one_filters = tmp_filter_matrix
 
-        print 'sampling filter created'
+        #print 'sampling filter created'
 
         return all_in_one_filters
         #return theano.shared(all_in_one_filters, borrow=True)
 
-# write the matrix as the csr form
-def write_csr(matrix_x, path):
-    buffer = ''
-    f = open(path, 'w')
-    num_rows = matrix_x.shape[0]
-    num_cols = matrix_x.shape[1]
 
-    buffer += str(num_rows) + ' ' +str(num_cols) + '\n'
-    for i in range(num_rows):
-
-        for j in range(num_cols):
-            if matrix_x[i, j] != 0:
-                buffer += '(' + str(i) + ' ' + str(j) + ')' + ' ' +str(matrix_x[i,j]) + '\n'
-
-
-    print >>f, buffer
-    f.close()
 
 
 if __name__ == '__main__':
