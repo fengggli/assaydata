@@ -96,8 +96,11 @@ def matrix2file(matrix_x, matrix_left, matrix_right ,file_path):
         num_col = 0
         for col in row:
 
+            '''
             if col > 0.5:
                 buffer += str(num_col+1) + ':1 '
+            '''
+            buffer += str(num_col+1) + ':' + '{:<6.3f}'.format(col)
 
             num_col += 1
 
@@ -122,7 +125,7 @@ def matrix2file(matrix_x, matrix_left, matrix_right ,file_path):
 
 
 # use the degnosing autocoder to transform the train and test data
-def do_transform(train_path, test_path, new_train_path, new_test_path, pickle_path, model_path, pecent_encode,my_training_epochs, mysample_mathod):
+def do_transform(train_path, test_path, new_train_path, new_test_path, pickle_path, model_path, pecent_encode,my_training_epochs, mysample_mathod, encode_function):
     # left is the left part besides the feature matrix
     matrix_train, train_left, train_right= file2matrix(train_path)
     matrix_test, test_left, test_right = file2matrix(test_path)
@@ -155,7 +158,7 @@ def do_transform(train_path, test_path, new_train_path, new_test_path, pickle_pa
     dim_out = int(dim_in*pecent_encode)
     print 'before sampling', matrix_train.shape, matrix_test.shape, 'mapped to dim_out = ', dim_out
 
-    matrix_train_new, matrix_test_new = dA.test_dA(1, 0, dim_in, dim_out, learning_rate=0.1, training_epochs=my_training_epochs,dataset=pickle_path, batch_size=10, output_path=model_path,sample_method=mysample_mathod)
+    matrix_train_new, matrix_test_new = dA.test_dA(1, 0, dim_in, dim_out, learning_rate=0.1, training_epochs=my_training_epochs,dataset=pickle_path, batch_size=10, output_path=model_path, sample_method=mysample_mathod, encode_function=encode_function)
 
     matrix2file(matrix_train_new, train_left, train_right, new_train_path)
     matrix2file(matrix_test_new, test_left, test_right, new_test_path)
@@ -182,45 +185,46 @@ if __name__ == '__main__':
             print train_path, test_path, new_train_path, new_test_path
 
             do_transform(train_path, test_path, new_train_path, new_test_path, pickle_path, model_path, pecent_encode)
-
-
-
-def test_sample:
-    a = np.array([[8,0,0,0,0,0, 1],[2,0, 0,0,0,0, 2]])
-    b = np.array([[1, 0,2,3,4,5,6],[1,2,3,4,5,6,7]])
-    [c, d] = get_sampled(a,b,0.4)
-    print a, b, c, d
 '''
+
+
 ## this part is for parameter tuning
 
 
 if __name__ == '__main__':
     #assay_directory = '../alldata'
 
-
-    if len(sys.argv) < 5:
-        print "./python this.py assay_name fold_id percent epochs"
-        print 'use default settings'
-        #file_name = '625269.csv.out.2'
-        file_name = '733.csv.out.2'
-        current_fold = '0'
-        #percent_encode = 0.01
-        percent_encode = 0.01
-        training_epochs = 100
-
-        # 0 sample nz and same number of zero
-        # 1 only sample zeros
+    file_name = '733.csv.out.2'
+    current_fold = '0'
+    #percent_encode = 0.01
+    percent_encode = 0.01
+    training_epochs = 100
+    sample_method = 0
+    encode_function = 0
 
 
     # try one instance
-    else:
-        file_name = sys.argv[1]
-        current_fold = sys.argv[2]
+    for arg in sys.argv[1:]:
 
-        percent_encode = float(sys.argv[3])
-        training_epochs = int(sys.argv[4])
 
-    sample_method = 0
+        if arg.startswith('-f='):
+            file_name = arg[len('-f='):]
+
+
+        if arg.startswith('-p='):
+            percent_encode = float(arg[len('-p='):])
+
+        if arg.startswith('-t='):
+            training_epochs = int(arg[len('-t='):])
+
+        if arg.startswith('-s='):
+            sample_method = int(arg[len('-s='):])
+
+        if arg.startswith('-e='):
+            encode_function = int(arg[len('-e='):])
+
+
+
 
 
     mycase = file_name +'_' + str(current_fold)
@@ -229,8 +233,18 @@ if __name__ == '__main__':
 
     if sample_method == 0:
         mycase_more = mycase + '_pct_' + str(percent_encode) + '_epochs_' + str(training_epochs)
+        print 'sample from all non-zeros and same size of zeros'
     elif sample_method == 1:
         mycase_more = mycase + '_pct_' + str(percent_encode) + '_epochs_' + str(training_epochs) + '_only_nz'
+        'sample only non-zero values'
+
+
+    if encode_function == 0:
+        mycase_more += '_sigmoid'
+        print 'use sigmoid function'
+    elif encode_function == 1:
+        mycase_more += '_tanh'
+        print 'using tanh function'
 
     new_train_path = 'traindata_sampled_encoded_new/' + mycase_more +'.train'
     new_test_path = 'testdata_sampled_encoded_new/' + mycase_more + '.test'
@@ -243,7 +257,10 @@ if __name__ == '__main__':
     model_path = '/scratch/lifen/dA_model/' +mycase_more # this is the encode 's W and b
     print train_path, test_path, new_train_path, new_test_path
 
-    do_transform(train_path, test_path, new_train_path, new_test_path, pickle_path, model_path, percent_encode, training_epochs, sample_method)
+
+
+
+    do_transform(train_path, test_path, new_train_path, new_test_path, pickle_path, model_path, percent_encode, training_epochs, sample_method, encode_function)
 
 
 '''

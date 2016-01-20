@@ -59,9 +59,8 @@ def save_sparse(A, path, myaxis=2):
     fp = open(path, 'w')
     print 'write the matrix to ', path
     if myaxis == 1:
-
         for elem in A:
-            print >>fp, elem
+            print >>fp, '{:<6.3f}'.format(elem)
     else:
         # two dimensional matrix save as sparse
         #io.mmwrite(fp, A)
@@ -228,34 +227,6 @@ class dA(object):
         #self.filter_matrix = numpy.random.randint(2, size=(mybatch_size, n_visible))
         #self.filter_matrix = numpy.zeros(mybatch_size, n_visible)
         self.myfilter_matrix = filter_matrix
-        '''
-        initial_filter = numpy.zeros(
-                shape = input_shape,
-                dtype=theano.config.floatX
-            )
-        self.sampling_filter = theano.shared(value=initial_filter, name='sampling_filter', borrow=True)
-
-        '''
-
-        '''
-
-        for i in range(all_col_num):
-
-                print
-
-        p = all_zero / self.x.shape[1]
-
-        # radom select 0.01 of all the features, this can overlap with the non-zero features
-        d = self.theano_rng.binomial(size=m.shape, n = 1, p = 0.01)
-
-        self.sampling_filter =  T.or_(d>0, m>0)
-        '''
-
-
-
-
-
-
 
         self.params = [self.W, self.b, self.b_prime]
 
@@ -263,80 +234,7 @@ class dA(object):
         self.error_type = error_type
 
 
-    '''
-    def set_filter(self):
-        # create the filter, sample based on the non-zero features and the sample the sample number of non-zero features
-        #m = T.sum(a, axis=0)
 
-        all_nz = []
-        all_zero = []
-        all_filter = []
-
-        row = []
-        col = []
-        data = []
-
-        # fix the random seed
-        numpy.random.seed(5)
-
-
-        #print self.input_shape.eval()
-
-        all_row_num = self.input_shape[0].eval()
-        all_col_num = self.input_shape[1].eval()
-
-
-        x_instance = self.x.eval()
-
-        #print type(all_col_num), all_col_num
-        i = 0
-        #for i in range(all_row_num):
-        #while T.lt(i, all_row_num.eval()):
-        while all_row_num > i:
-            nz_this_row = []
-            zeros_this_row = []
-            j = 0
-            #for j in range(all_col_num):
-            while all_col_num > j:
-            #while T.lt(j, all_col_num.eval()):
-                elem = x_instance[i, j]
-                if elem == 0:  # errors here elem is always nonzero
-                    zeros_this_row.append(j)
-                else:
-                    nz_this_row.append(j)
-                #print 'inside ', str(j), 'iteration in', str(all_col_num)
-
-                j += 1
-
-            len_sampled = len(nz_this_row)
-            sampled_zeros_this_row = numpy.random.choice(zeros_this_row,size = len_sampled, replace=False)
-            filtered_result_this_row = nz_this_row + sampled_zeros_this_row.tolist()
-
-
-            # prepare to construct the sparse matrix
-            for m in range(len(filtered_result_this_row)):
-                row.append(i)
-                col.append(filtered_result_this_row[m])
-                data.append(float(1))
-
-
-            # actually csr format
-            all_zero.append(zeros_this_row) # all of the zero index in each row
-            all_nz.append(nz_this_row) # all of the nz index in each row
-            all_filter.append(nz_this_row + sampled_zeros_this_row)
-
-            #print 'the ', str(i), 'iteration finished'
-            i += 1
-
-        tmp_filter_matrix = csr_matrix((data, (row, col))).toarray()
-        extra_col = self.n_visible - tmp_filter_matrix.shape[1]
-        if extra_col > 0:
-            self.filter_matrix = numpy.hstack((tmp_filter_matrix, numpy.zeros((tmp_filter_matrix.shape[0], extra_col), dtype=tmp_filter_matrix.dtype)))
-        else:
-            self.filter_matrix = tmp_filter_matrix
-        print 'sampling filter created'
-
-    '''
     def get_corrupted_input(self, input, corruption_level):
         """This function keeps ``1-corruption_level`` entries of the inputs the
         same and zero-out randomly selected subset of size ``coruption_level``
@@ -363,16 +261,23 @@ class dA(object):
                                         p=1 - corruption_level,
                                         dtype=theano.config.floatX) * input
 
-    def get_hidden_values(self, input):
+    def get_hidden_values(self, input, enc_function=0):
         """ Computes the values of the hidden layer """
-        return T.nnet.sigmoid(T.dot(input, self.W) + self.b)
+        if enc_function == 0:
+            # sigmoid fuction
+            return T.nnet.sigmoid(T.dot(input, self.W) + self.b)
+        elif enc_function == 1:
+            # tanh function:
+            return T.tanh(T.dot(input, self.W) + self.b)
 
-    def get_reconstructed_input(self, hidden):
+    def get_reconstructed_input(self, hidden, enc_function=0):
         """Computes the reconstructed input given the values of the
         hidden layer
-
         """
-        return T.nnet.sigmoid(T.dot(hidden, self.W_prime) + self.b_prime)
+        if enc_function == 0:
+            return T.nnet.sigmoid(T.dot(hidden, self.W_prime) + self.b_prime)
+        elif enc_function == 1:
+            return T.tanh(T.dot(hidden, self.W_prime) + self.b_prime)
 
 
     # set the filter based on the input,(sample in each instance)
@@ -388,35 +293,16 @@ class dA(object):
         #sampled_data = csr_matrix.multiply(self.filter_matrix, a)
         sampled_data = self.myfilter_matrix * a
         return sampled_data
-        
 
-    # not used ...
-    '''
-    # random sample features, default sample rate is 0.01
-    def get_sampled(self, a, b):
-        #theano_rng = RandomStreams()
 
-        m = T.sum(a, axis=0)
 
-        # radom select 0.01 of all the features, this can overlap with the non-zero features
-        d = self.theano_rng.binomial(size=m.shape, n = 1, p = 0.01 )
-
-        my_filter = T.or_(d>0, m>0)
-
-        a_sampled = a*my_filter
-        b_sampled = b*my_filter
-
-        #return theano.function([a,b], [a_sampled, b_sampled])
-        return [a_sampled, b_sampled]
-    '''
-
-    def get_cost_updates(self, corruption_level, learning_rate):
+    def get_cost_updates(self, corruption_level, learning_rate, enc_function):
         """ This function computes the cost and the updates for one trainng
         step of the dA """
 
         tilde_x = self.get_corrupted_input(self.x, corruption_level)
-        y = self.get_hidden_values(tilde_x)
-        z = self.get_reconstructed_input(y)
+        y = self.get_hidden_values(tilde_x, enc_function)
+        z = self.get_reconstructed_input(y, enc_function)
 
         sampled_x = self.get_sampled(tilde_x)
         sampled_z = self.get_sampled(z)
@@ -431,20 +317,7 @@ class dA(object):
         #        minibatches, L will be a vector, with one entry per
         #        example in minibatch
 
-        
-        '''
-        # the cross entropy loss
-        L = T.fmatrices()
-        if self.error_type == 1:
-            L = - T.sum(self.x * T.log(z) + (1 - self.x) * T.log(1 - z), axis=1)
 
-        #square error, added by feng
-
-        #print 'using'
-        if self.error_type == 0:
-            L = T.sum((self.x - z)**2, axis = 1)
-        
-        '''
 
         #sampled version
         L = T.fmatrices()
@@ -479,7 +352,8 @@ class dA(object):
 
 def test_dA(my_s_type, my_error_type, dim_in, dim_out, learning_rate=0.1, training_epochs=15,
             dataset='mnist.pkl.gz',
-            batch_size=10, output_path='dA_plots', sample_method=0):
+            batch_size=10, output_path='dA_plots', sample_method=0, encode_function=0):
+
 
     """
     This demo is tested on MNIST
@@ -494,6 +368,12 @@ def test_dA(my_s_type, my_error_type, dim_in, dim_out, learning_rate=0.1, traini
     :type dataset: string
     :param dataset: path to the picked dataset
 
+    : sample method:
+        0: sample from all non-zero and same size of zeroes.
+        1: only sample those non-zeros
+    : encode_function:
+        0: sigmoid
+        1: tanh
     """
     datasets = load_data(dataset)
 
@@ -521,23 +401,9 @@ def test_dA(my_s_type, my_error_type, dim_in, dim_out, learning_rate=0.1, traini
 
     # start-snippet-2
     # allocate symbolic variables for the data
-    #index = T.lscalar()    # index to a [mini]batch
+
     x = T.matrix('x')  # the data is presented as rasterized images
-    #x = theano.shared((numpy.zeros(batch_size, train_set_x.get_value(borrow=True).shape[0]), dtype=theano.config.floatX), borrow=True)
 
-    '''
-    x = theano.shared(
-                value=numpy.zeros(
-                    (batch_size, dim_in),
-                    dtype=theano.config.floatX
-                ),
-                name='x',
-                borrow=True
-            )
-
-    '''
-    #shape_info = T.vector('shape_info')
-    #shape_info = theano.shared(numpy.array([3,100]))
     # end-snippet-2
 
 
@@ -572,7 +438,8 @@ def test_dA(my_s_type, my_error_type, dim_in, dim_out, learning_rate=0.1, traini
     # param added by Feng
     cost,  updates = da.get_cost_updates(
         corruption_level=0,
-        learning_rate=learning_rate
+        learning_rate=learning_rate,
+        enc_function=encode_function
     )
 
     train_da = theano.function(

@@ -1,0 +1,10 @@
+#change log
+
+##[0.5] Jan 19.2015
+### changed
+- in the dA encoder, instead get the {0,1}(binary) encoded features, get the
+origin float feature.
+-get the result of :
+	1. _uniq: before encoding, erase all the features of all-zeros, getting a
+	lower dimension before the encoding.(sample rate_0.02)
+	2. _tanh: use the tanh, other than sigmoid as the encoding function
