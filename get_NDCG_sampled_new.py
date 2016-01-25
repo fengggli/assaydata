@@ -13,11 +13,11 @@ if __name__ == "__main__":
 
         if rank_function == 0:
             print 'for svm ranking \n'
-            output_path = 'NDCG_result/svm_rank_sampled_733_0.result'
+            output_path = 'NDCG_result/svm_rank_sampled_733_0_0.004.result'
 
         else:
             print 'for svm light \n'
-            output_path = 'NDCG_result/svm_light_sampled_733_0.result'
+            output_path = 'NDCG_result/svm_light_sampled_733_0_0.004.result'
 
 
         ndcg_result = open(output_path, 'w')
@@ -41,14 +41,14 @@ if __name__ == "__main__":
         #for fold_id in range(5):
 
         fold_id = 0
-        for encoding_rate in [0.01]: 
+        for encoding_rate in [0.004]: 
             ndcg10_this_assay = []
             ndcg5_this_assay = []
             ndcgall_this_assay = []
 
 
             mycase = assayname + '_' +str(fold_id)
-            mycasemore = mycase + '_pct_' + str(encoding_rate)+'_epochs_100' 
+            mycasemore = mycase + '_pct_' + str(encoding_rate)+'_epochs_100_sigmoid' 
 
 
             test_path = 'encoder/testdata_sampled_encoded_new/' + mycasemore + '.test'

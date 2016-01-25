@@ -158,7 +158,7 @@ def do_transform(train_path, test_path, new_train_path, new_test_path, pickle_pa
     dim_out = int(dim_in*pecent_encode)
     print 'before sampling', matrix_train.shape, matrix_test.shape, 'mapped to dim_out = ', dim_out
 
-    matrix_train_new, matrix_test_new = dA.test_dA(1, 0, dim_in, dim_out, learning_rate=0.1, training_epochs=my_training_epochs,dataset=pickle_path, batch_size=10, output_path=model_path, sample_method=mysample_mathod, encode_function=encode_function)
+    matrix_train_new, matrix_test_new = dA.test_dA(0, dim_in, dim_out, learning_rate=0.1, training_epochs=my_training_epochs,dataset=pickle_path, batch_size=10, output_path=model_path, sample_method=mysample_mathod, encode_function=encode_function)
 
     matrix2file(matrix_train_new, train_left, train_right, new_train_path)
     matrix2file(matrix_test_new, test_left, test_right, new_test_path)
@@ -194,21 +194,24 @@ if __name__ == '__main__':
 if __name__ == '__main__':
     #assay_directory = '../alldata'
 
-    file_name = '733.csv.out.2'
+    assay_name = '733.csv.out.2'
     current_fold = '0'
     #percent_encode = 0.01
     percent_encode = 0.01
     training_epochs = 100
-    sample_method = 0
-    encode_function = 0
+    sample_method = 0 # 0 for sample using nz and same size of zero. 1 for only nz features, 2 not sampling
+    encode_function = 0 # 0 for use sigmoid
 
 
     # try one instance
     for arg in sys.argv[1:]:
 
 
+        if arg.startswith('-a='):
+            assay_name = arg[len('-a='):]
+
         if arg.startswith('-f='):
-            file_name = arg[len('-f='):]
+            current_qfold = arg[len('-f='):]
 
 
         if arg.startswith('-p='):
@@ -227,7 +230,7 @@ if __name__ == '__main__':
 
 
 
-    mycase = file_name +'_' + str(current_fold)
+    mycase = assay_name +'_' + str(current_fold)
     train_path = '../traindata/' + mycase +'.train'
     test_path = '../testdata/' + mycase +'.test'
 
@@ -236,7 +239,10 @@ if __name__ == '__main__':
         print 'sample from all non-zeros and same size of zeros'
     elif sample_method == 1:
         mycase_more = mycase + '_pct_' + str(percent_encode) + '_epochs_' + str(training_epochs) + '_only_nz'
-        'sample only non-zero values'
+        print 'sample only non-zero values'
+    elif sample_method == -1:
+        mycase_more = mycase + '_pct_' + str(percent_encode) + '_epochs_' + str(training_epochs) + '_without_sampling'
+        print 'do not sampling'
 
 
     if encode_function == 0:
@@ -252,7 +258,7 @@ if __name__ == '__main__':
 
 
 
-    pickle_path = 'tmp/' + mycase_more +'_sampled_new.pkl.gz'  # this is for dA module
+    pickle_path = '/scratch/lifen/tmp/' + mycase_more +'_sampled_new.pkl.gz'  # this is for dA module
 
     model_path = '/scratch/lifen/dA_model/' +mycase_more # this is the encode 's W and b
     print train_path, test_path, new_train_path, new_test_path

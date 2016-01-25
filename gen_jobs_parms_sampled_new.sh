@@ -3,7 +3,7 @@ datapath=alldata/*
 
 echo "this use the dA encoding, and linear kernel in svm_learn"
 #for assay in $datapath
-for assay in '625269.csv.out.2'
+for assay in '733.csv.out.2'
 #for a`ssay in 2217.csv.out.2
 do
 	#assayname=$(basename "$assay")
@@ -14,9 +14,9 @@ do
 
 		mycase=${assayname}_${i}
 
-        for sample_rate in 0.01
+        for sample_rate in 0.004
         do
-            mycasemore=${mycase}_pct_${sample_rate}_epochs_100
+            mycasemore=${mycase}_pct_${sample_rate}_epochs_100_sigmoid
 
             # trainset and testset
             trainfile=encoder/traindata_sampled_encoded_new/${mycasemore}.train

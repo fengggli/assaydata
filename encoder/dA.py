@@ -296,7 +296,7 @@ class dA(object):
 
 
 
-    def get_cost_updates(self, corruption_level, learning_rate, enc_function):
+    def get_cost_updates(self, corruption_level, learning_rate, sample_method, enc_function):
         """ This function computes the cost and the updates for one trainng
         step of the dA """
 
@@ -304,31 +304,34 @@ class dA(object):
         y = self.get_hidden_values(tilde_x, enc_function)
         z = self.get_reconstructed_input(y, enc_function)
 
-        sampled_x = self.get_sampled(tilde_x)
-        sampled_z = self.get_sampled(z)
-
-        #sampled_x = tilde_x
-        #sampled_z = z
-        # sampled in each update
-
-        #[sampled_x, sampled_z] = self.get_sampled(tilde_x, z)
-
-        # note : we sum over the size of a datapoint; if we are using
-        #        minibatches, L will be a vector, with one entry per
-        #        example in minibatch
-
-
-
-        #sampled version
         L = T.fmatrices()
-        if self.error_type == 1:
-            L = - T.sum(sampled_x * T.log(sampled_z) + (1 - sampled_x) * T.log(1 - sampled_z), axis=1)
 
-        #square error, added by feng
+        # if only encoding but not sample
+        if sample_method == -1:
 
-        #print 'using'
-        if self.error_type == 0:
-            L = T.sum((sampled_x - sampled_z)**2, axis = 1)
+
+            if self.error_type == 1:
+                L = - T.sum(tilde_x * T.log(z) + (1 - tilde_x) * T.log(1 - z), axis=1)
+
+            #square error, added by feng
+            #print 'using'
+            if self.error_type == 0:
+                L = T.sum((tilde_x - z)**2, axis=1)
+
+        else:
+
+            sampled_x = self.get_sampled(tilde_x)
+            sampled_z = self.get_sampled(z)
+            #sampled version
+
+            if self.error_type == 1:
+                L = - T.sum(sampled_x * T.log(sampled_z) + (1 - sampled_x) * T.log(1 - sampled_z), axis=1)
+
+            #square error, added by feng
+
+            #print 'using'
+            if self.error_type == 0:
+                L = T.sum((sampled_x - sampled_z)**2, axis = 1)
 
         # note : L is now a vector, where each element is the
         #        cross-entropy cost of the reconstruction of the
@@ -350,7 +353,7 @@ class dA(object):
 
 
 
-def test_dA(my_s_type, my_error_type, dim_in, dim_out, learning_rate=0.1, training_epochs=15,
+def test_dA(my_error_type, dim_in, dim_out, learning_rate=0.1, training_epochs=15,
             dataset='mnist.pkl.gz',
             batch_size=10, output_path='dA_plots', sample_method=0, encode_function=0):
 
@@ -371,6 +374,7 @@ def test_dA(my_s_type, my_error_type, dim_in, dim_out, learning_rate=0.1, traini
     : sample method:
         0: sample from all non-zero and same size of zeroes.
         1: only sample those non-zeros
+        -1: do not sample
     : encode_function:
         0: sigmoid
         1: tanh
@@ -392,7 +396,6 @@ def test_dA(my_s_type, my_error_type, dim_in, dim_out, learning_rate=0.1, traini
     threshold = 5
 
     # get the filter matrix for each batch, put in one list
-
     np_filter_matrix = create_all_filter(train_set, sample_method)
     all_filters = theano.shared(np_filter_matrix, borrow=True)
 
@@ -428,10 +431,7 @@ def test_dA(my_s_type, my_error_type, dim_in, dim_out, learning_rate=0.1, traini
         # added by Feng, dimension specifics
         n_visible=dim_in,
         n_hidden=dim_out,
-        s_type = my_s_type,
         error_type = my_error_type,
-
-
         filter_matrix=my_filter_matrix
     )
 
@@ -439,6 +439,7 @@ def test_dA(my_s_type, my_error_type, dim_in, dim_out, learning_rate=0.1, traini
     cost,  updates = da.get_cost_updates(
         corruption_level=0,
         learning_rate=learning_rate,
+        sample_method=sample_method,
         enc_function=encode_function
     )
 
@@ -451,7 +452,8 @@ def test_dA(my_s_type, my_error_type, dim_in, dim_out, learning_rate=0.1, traini
         givens={
             x: train_set_x[index_k * batch_size: (index_k + 1) * batch_size],
             my_filter_matrix: all_filters[index_k * batch_size: (index_k + 1) * batch_size]
-        }
+        },
+        on_unused_input='ignore'
     )
 
 
@@ -641,7 +643,7 @@ def create_all_filter(train_set, sample_method):
                 len_sampled = len(nz_this_row)
                 sampled_zeros_this_row = numpy.random.choice(zeros_this_row, size = len_sampled, replace=False)
                 filtered_result_this_row = nz_this_row + sampled_zeros_this_row.tolist()
-            elif sample_method == 1:
+            else:
                 # only use the nz filter
                 filtered_result_this_row = nz_this_row
 
